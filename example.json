@@ -1,0 +1,34 @@
+{
+	"tipo": "od",
+	"texto": "Lograr un sistema de delivery de comida",
+	"y-ref": [
+		{
+			"tipo": "od",
+			"texto": "Lograr que se registre el pedido del cliente"
+		},
+		{
+			"tipo": "od",
+			"texto": "Lograr que dado el pedido, el cocinero lo prepare"
+		},
+		{
+			"tipo": "od",
+			"texto": "Lograr que preparado el pedido, se lo lleve a la direccion del cliente",
+			"o-ref": [
+				{
+					"tipo": "od",
+					"texto": "Llevarlo en moto",
+					
+					"ayuda": "Velocidad",
+					"dificulta": "Seguridad"
+				},
+				{
+					"tipo": "od",
+					"texto": "Llevarlo en tanque",
+					
+					"ayuda": "Velocidad, costo",
+					"dificulta": "Seguridad"
+				}
+			]
+		}
+	]
+}
