@@ -30,3 +30,4 @@ pip-log.txt
 *.png
 *.jpeg
 *.gif
+*.dot
