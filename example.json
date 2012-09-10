@@ -16,7 +16,22 @@
 					},
 					{
 						"tipo": "od",
-						"texto": "Comprarle una cocina piola"
+						"texto": "Comprarle una cocina piola",
+						"o-ref": 
+							[
+								{
+									"tipo": "od",
+									"texto": "Comprarle un horno nuclear",
+									"ayuda": "Hecatombe nuclear",
+									"dificulta": "Precio, Seguridad"
+								},
+								{
+									"tipo": "od",
+									"texto": "Comprarle un horno para pizza",
+									"ayuda": "Seguridad, costo",
+									"dificulta": "Hecatombe nuclear"
+								}
+							]
 					}
 			]
 		},
