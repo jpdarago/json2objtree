@@ -56,7 +56,7 @@ class ObjectiveGraph(object):
 		parent_node = self.add_node(parent)
 
 		#Agregar el eje
-		self.__graph.add_edge(pydot.Edge(child.text,parent.text))
+		self.__graph.add_edge(pydot.Edge(child.text,parent.text, **properties))
 
 	def write(self):
 		return self.__graph.write_svg(self.name + '.svg')
@@ -76,6 +76,20 @@ def build_tree(data,tree):
 			tree.add_relation(child,root)
 
 			build_tree(o,tree)
+
+	helps = data.get('ayuda',None)
+	helps = helps.split(",") if helps else []
+
+	for o in helps:
+		soft_obj = Assertion('ob',o)
+		tree.add_relation(root,soft_obj, {'label': '++'})
+
+	hardens = data.get('dificulta',"")
+	hardens = hardens.split(",") if hardens else []
+
+	for o in hardens:
+		soft_obj = Assertion('ob',o)
+		tree.add_relation(root,soft_obj, {'label': '--'})
 
 def main():
 	if (len(sys.argv) < 2):
