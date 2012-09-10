@@ -71,7 +71,6 @@ class ObjectiveGraph(object):
 		self.__graph.write_svg(self.name + '.svg')
 
 dummy_count = 0
-
 def build_tree(data,tree):
 	global dummy_count
 
