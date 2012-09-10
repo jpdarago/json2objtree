@@ -12,10 +12,12 @@ import time
 def make_properties(shape,style="filled",fillcolor="yellow"):
 	return dict(zip(["shape","style","fillcolor"],[shape,style,fillcolor]))
 
+node_count = 0
 #Arma una asercion dado un texto 
 def make_node(assertion_type, text):
+	global node_count
 	props = {
-		'od': make_properties("parallelogram"),
+		'od': make_properties("rectangle"),
 		'ob': make_properties("circle",style="filled",fillcolor="#aacccc"),
 		'ad': make_properties("trapezium"),
 		'ag': make_properties("hexagon"),
@@ -25,7 +27,10 @@ def make_node(assertion_type, text):
 			'color': 'black'
 		}
 	}.get(assertion_type,dict(make_properties("plaintext")))
-	return pydot.Node(text, ** props )
+	props['label'] = text
+
+	node_count += 1
+	return pydot.Node(str(node_count), ** props )
 
 Assertion = collections.namedtuple('Asertion',['type','text'])
 
@@ -64,6 +69,7 @@ class ObjectiveGraph(object):
 		parent_node = self.add_node(parent)
 
 		#Agregar el eje
+		properties['dir'] = 'back'
 		self.add_relation_straight(child_node,parent_node,properties)
 
 	def write(self):
@@ -77,22 +83,19 @@ def build_tree(data,tree):
 	#Estamos en un nodo.
 	root = Assertion(data['tipo'],data['texto'])
 	if 'y-ref' in data.keys():
-		dummy_node = tree.add_node(Assertion('dummy',"DUMMY" + str(dummy_count)),append=True)
+		dummy = Assertion('dummy',"DUMMY" + str(dummy_count))
 		dummy_count += 1
 
-		root_node = tree.add_node(root)
-
-		tree.add_relation_straight(dummy_node,root_node)
+		tree.add_relation(root,dummy)
 		for o in data['y-ref']:
-			child_node = tree.add_node(Assertion(o['tipo'],o['texto']))
-		
-			tree.add_relation_straight(child_node,dummy_node, {'arrowhead': 'none'})
+			child = Assertion(o['tipo'],o['texto'])
+			tree.add_relation(dummy,child)
 
 			build_tree(o,tree)
 	elif 'o-ref' in data.keys():
 		for o in data['o-ref']:
 			child = Assertion(o['tipo'],o['texto'])
-			tree.add_relation(child,root)
+			tree.add_relation(root,child)
 
 			build_tree(o,tree)
 
@@ -118,7 +121,11 @@ def main():
 	dummy_count = 0
 	with open(sys.argv[1], 'r') as f:
 		tree = ObjectiveGraph('objetivos')
-		build_tree(json.loads(f.read()), tree)
+		data = json.loads(f.read())
+
+		dummy_count = node_count = 0
+		build_tree(data, tree)
+
 		tree.write()
 
 if __name__ == '__main__':
