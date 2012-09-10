@@ -8,7 +8,17 @@
 		},
 		{
 			"tipo": "od",
-			"texto": "Lograr que dado el pedido, el cocinero lo prepare"
+			"texto": "Lograr que dado el pedido, el cocinero lo prepare",
+			"y-ref": [
+					{
+						"tipo": "od",
+						"texto": "Contratar un cocinero piola"
+					},
+					{
+						"tipo": "od",
+						"texto": "Comprarle una cocina piola"
+					}
+			]
 		},
 		{
 			"tipo": "od",
