@@ -22,14 +22,14 @@
 								{
 									"tipo": "od",
 									"texto": "Comprarle un horno nuclear",
-									"ayuda": "Hecatombe nuclear",
-									"dificulta": "Precio, Seguridad"
+									"ayuda": ["Hecatombe nuclear"],
+									"dificulta": ["Precio", "Seguridad"]
 								},
 								{
 									"tipo": "od",
 									"texto": "Comprarle un horno para pizza",
-									"ayuda": "Seguridad, costo",
-									"dificulta": "Hecatombe nuclear"
+									"ayuda": ["Seguridad", "costo"],
+									"dificulta": ["Hecatombe nuclear"]
 								}
 							]
 					}
@@ -43,15 +43,15 @@
 					"tipo": "od",
 					"texto": "Llevarlo en moto",
 					
-					"ayuda": "Velocidad",
-					"dificulta": "Seguridad"
+					"ayuda": ["Velocidad"],
+					"dificulta": ["Seguridad"]
 				},
 				{
 					"tipo": "od",
 					"texto": "Llevarlo en tanque",
 					
-					"ayuda": "Velocidad, costo",
-					"dificulta": "Seguridad"
+					"ayuda": ["Velocidad", "costo"],
+					"dificulta": ["Seguridad"]
 				}
 			]
 		}

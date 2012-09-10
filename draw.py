@@ -104,6 +104,11 @@ class ObjectiveGraph(object):
 		self.__graph.write_dot(self.name + '.dot')
 		self.__graph.write_svg(self.name + '.svg')
 
+def add_impact(tree, root, soft_objs, edge_style):
+	for o in soft_objs:
+		soft_obj = Assertion('ob',o.strip().capitalize())
+		tree.add_relation(root,soft_obj, edge_style)
+
 def build_tree(data,tree):
 	global dummy_count
 	#Estamos en un nodo.
@@ -112,12 +117,21 @@ def build_tree(data,tree):
 		dummy = Assertion('dummy',"DUMMY" + str(dummy_count))
 		dummy_count += 1
 
-		tree.add_relation(root,dummy, {'dir': 'back'})
+		is_requirement = False
 		for o in data['y-ref']:
 			child = Assertion(o['tipo'],o['texto'])
-			tree.add_relation(dummy,child, {'arrowtail': 'none', 'dir': 'back'})
+			t = o['tipo']
+			if len(data['y-ref']) == 1:
+				is_requirement = True #No se puede asignar un agente a algo que no vamos a refinar
+				tree.add_relation(root,child, {'arrowhead': 'none', 'arrowtail': 'none', 'dir': 'both'})
+			else:
+				tree.add_relation(dummy,child, {'arrowtail': 'none', 'dir': 'back'})
 
 			build_tree(o,tree)
+
+		if not is_requirement:
+			tree.add_relation(root,dummy, {'dir': 'back'})
+
 	elif 'o-ref' in data.keys():
 		for o in data['o-ref']:
 			child = Assertion(o['tipo'],o['texto'])
@@ -125,21 +139,14 @@ def build_tree(data,tree):
 
 			build_tree(o,tree)
 
-	helps = data.get('ayuda',None)
-	helps = helps.split(",") if helps else []
 
+	helps = data.get('ayuda',[])
 	edge_style = {'label': '++', 'style': 'dotted', 'penwidth': 2}
-	for o in helps:
-		soft_obj = Assertion('ob',o.strip().capitalize())
-		tree.add_relation(root,soft_obj, edge_style)
+	add_impact(tree,root,helps,edge_style)
 
-	hardens = data.get('dificulta',"")
-	hardens = hardens.split(",") if hardens else []
-
+	hardens = data.get('dificulta',[])
 	edge_style['label'] = '--'
-	for o in hardens:
-		soft_obj = Assertion('ob',o.strip().capitalize())
-		tree.add_relation(root,soft_obj, edge_style)
+	add_impact(tree,root,hardens,edge_style)
 
 def main():
 	if (len(sys.argv) < 2):
