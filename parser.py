@@ -19,6 +19,7 @@ import os
 import sys
 import json
 import re
+import argparse
 
 class FormatException(Exception):
 	def __init__(self, value):
@@ -28,7 +29,7 @@ class FormatException(Exception):
 
 def parse(text):
 	""" 
-		Parsea la gramatica	a un json
+		Parsea la gramatica	a un JSON. Para un ejemplo vease example.jg
 	"""
 	res = {}
 
@@ -134,25 +135,27 @@ def cleanup(text):
 	return re.sub(regex,lambda m: m.group(1), text)
 
 def main():
-	if (len(sys.argv) < 2):
-		print "Uso: %s (archivo de entrada) [archivo de salida]" % sys.argv[0]
-		sys.exit()
+	parser = argparse.ArgumentParser(description='Dibuja un arbol de objetivos onda Ingenieria I de FCEN UBA a partir de JSON.')
 
-	entrada = sys.argv[1]
-	salida = ""
+	parser.add_argument('input_file', help=' Archivo con la entrada, - es para entrada estandar ')
+	parser.add_argument('-o', dest='output_file', default='--', help=' Archivo de salida. Por default usa SVG y el mismo nombre que la entrada ')
 
-	if len(sys.argv) == 3:
-		salida = sys.argv[2]
-	else:
-		salida = os.path.splitext(sys.argv[1])[0] + '.jgc' 
+	args = parser.parse_args()
 
-	with open(entrada, 'r') as f:
-		cleaned = cleanup ( f.read() )
-		print cleaned,"\n\n"
-		data,rem = parse( cleanup( cleaned ) )
-	
-	with open(salida,'w') as f:
-		f.write(json.dumps(data, sort_keys=True, indent=4))
+	try:
+		input_file = sys.stdin if args.input_file == '-' else open(args.input_file,'r')
+	except IOError as error:
+		print "Error %s: %s" % error
+
+	try:
+		output_file = sys.stdout if args.output_file == '--' else open(args.output_file,'w')
+	except IOError as error:
+		print "Error %s: %s" % error
+
+	cleaned = cleanup ( input_file.read() )
+	data,rem = parse( cleanup( cleaned ) )
+
+	output_file.write(json.dumps(data, sort_keys=True, indent=4))
 
 if __name__ == "__main__":
 	main()
