@@ -11,9 +11,9 @@ Uso
 
 La idea del sistema es usarlo bajo distribuciones Linux. Es necesario tener la libreria GraphViz y la libreria
 pydot. Si no se disponen de ellas y se esta corriendo con Ubuntu y privilegios de root, se puede utilizar el 
-install.sh para meter todo junto.
+_install.sh_ para meter todo junto.
 
-Hay dos scripts, draw.py y parse.py. parse.py parsea de la gramatica nuestra propia a un JSON, y draw.py dibuja
+Hay dos scripts, _draw.py_ y _parser.py_ . _parse.py_ parsea de la gramatica nuestra propia a un JSON, y _draw.py_ dibuja
 tomando de entrada un .json y devolviendo en alguno de muchos formatos, como por ejemplo
 
 * jpg

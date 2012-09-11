@@ -135,10 +135,10 @@ def cleanup(text):
 	return re.sub(regex,lambda m: m.group(1), text)
 
 def main():
-	parser = argparse.ArgumentParser(description='Dibuja un arbol de objetivos onda Ingenieria I de FCEN UBA a partir de JSON.')
+	parser = argparse.ArgumentParser(description='Parsea la gramatica de arboles que definimos a JSON.')
 
-	parser.add_argument('input_file', help=' Archivo con la entrada, - es para entrada estandar ')
-	parser.add_argument('-o', dest='output_file', default='--', help=' Archivo de salida. Por default usa SVG y el mismo nombre que la entrada ')
+	parser.add_argument('-i', dest='input_file', default='-', help=' Archivo con la entrada. Si no se especifica se toma entrada estandar ')
+	parser.add_argument('-o', dest='output_file', default='--', help=' Archivo de salida. Si no se especifica se toma salida estandar ')
 
 	args = parser.parse_args()
 
