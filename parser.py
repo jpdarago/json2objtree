@@ -1,4 +1,5 @@
 #!/usr/bin/python
+#-*- coding: utf-8 -*-
 
 #Copyright (c) 2012 -  Juan Pablo Darago
 #
@@ -20,6 +21,7 @@ import sys
 import json
 import re
 import argparse
+import unicodedata
 
 class FormatException(Exception):
 	def __init__(self, value):
@@ -27,47 +29,51 @@ class FormatException(Exception):
 	def __str__(self):
 		return "Formato invalido: " + repr(self.value)
 
-def parse(text):
+separator_tags = ['(',')','[',']','{','}','<','>',':','+','-']
+
+def parse_to_json(text):
 	""" 
 		Parsea la gramatica	a un JSON. Para un ejemplo vease example.jg
 	"""
 	res = {}
 
 	if(len(text) < 2):
-		raise FormatException('Terminacion prematura del texto en < %s >' % text)
+		raise FormatException('Terminacion prematura del texto en "%s"' % text)
 
 	assertion_type = text[0:2]
 	res['tipo'] = assertion_type
 
 	if(text[2] != '('):
-		raise FormatException('Se esperaba ( se obtuvo %s en < %s >' % (text[2], text[:min(2,len(text))]))
+		raise FormatException('Se esperaba ( se obtuvo %s en "%s"' % (text[2], text))
 
 	label_end = 0
-	if text[2] in ['"',"'"]:
-		#El texto esta quoteado quoteado
-		for i in range(3,len(text)):
-			if text[i] == text[2]:
+	if text[3] in ['"',"'"]:
+		#El texto esta quoteado
+		for i in range(4,len(text)):
+			if text[i] == text[3]:
 				res['texto'] = text[4:i] 
 				if i+1 >= len(text):
-					raise FormatException('Terminacion prematura del texto en < %s >' % text[i:])
-				elif text[i] != ')':
-					raise FormatException('Se esperaba ) se obtuvo %s en < %s >' % (text[i+1], text[i:]))
+					raise FormatException('Terminacion prematura del texto en "%s"' % text[i:])
+				elif text[i+1] != ')':
+					raise FormatException('Se esperaba ) se obtuvo %s en "%s"' % (text[i+1], text[i:]))
 
 				label_end = i+2
 				break
 
 		if label_end == -1:
-			raise FormatException('No se encontro %s, posible label de objetivo no cerrada en < %s >' % (text[2],text[2:]) )
+			raise FormatException('No se encontro %s, posible label de objetivo no cerrada en "%s"' % (text[2],text[2:]) )
 	else:
 		#El texto no esta quoteado
-		for i in range(2,len(text)):
+		for i in range(3,len(text)):
 			if text[i] == ')':
 				res['texto'] = text[3:i] 
 				label_end = i+1
 				break
+			elif text[i] in separator_tags:
+				raise FormatException(' "(" no quoteado contiene caracter tag %s en "%s" ' % (text[i], text))
 
 		if label_end == -1:
-			raise FormatException('No se encontro ). posible label de objetivo no cerrada en < %s >' % text[2:] )
+			raise FormatException('No se encontro ). posible label de objetivo no cerrada en "%s" ' % text[2:] )
 
 	text = text[label_end:]
 
@@ -81,7 +87,7 @@ def parse(text):
 
 		res[dict_key] = []
 		while(True):
-			child, rem_text = parse(text[1:])
+			child, rem_text = parse_to_json(text[1:])
 
 			res[dict_key].append(child)
 			text = rem_text
@@ -90,15 +96,13 @@ def parse(text):
 			if(text[0] != ','): 
 				break
 		if(text[0] != close_tag):
-			raise FormatException('Se esperaba cierre del refinamiento en < %s >' % text)
+			raise FormatException('Se esperaba %s como cierre del refinamiento en "%s" >' % (close_tag,text) )
 		text = text[1:]
 
 	if(len(text) == 0):
 		return res, ""
 
 	if text[0] == '<':
-		close_tag = '>'
-		
 		res['ayuda'] =  []
 		res['dificulta'] = []
 		
@@ -113,6 +117,9 @@ def parse(text):
 			raise FormatException("Lista de efectos en objetivo blando incompleta en < %s >" % text)
 
 		for elem in s.split(","):
+			if not ':' in elem:
+				raise FormatException("Lista de objetivos blandos afectados en < %s >" % text)
+
 			impc,obj = elem.split(':')
 			if(impc[0] == '+'):
 				res['ayuda'].append(obj)
@@ -121,14 +128,33 @@ def parse(text):
 
 	return res, text
 
+def parse_to_jg(tree, indentation=""):
+	"""
+		Parsea el arbol en diccionario de python, tomado de un JSON, a un coso de gramatica JG
+	"""
+	str_res = indentation + tree['tipo'] + "('" + tree['texto'] + "')"
+
+	if 'y-ref' in tree.keys() or 'o-reg' in tree.keys():
+		sep_start,sep_end = ('{','}') if 'y-ref' in tree.keys() else ('[', ']')
+		str_res += sep_start + "\n" + ",\n".join( map ( lambda t: parse_to_jg(t, indentation + "\t"), tree.get('y-ref',None) or tree.get('o-ref',[]) ) ) + "\n" + indentation + sep_end
+	
+	ayudas = [('+',s) for s in tree.get('ayuda',[])]
+	dificultas = [('-',s) for s in tree.get('dificulta',[])]
+	if( len(ayudas) + len(dificultas) > 0):
+		str_res += '<' + ",".join( map( lambda s: s[0] + ":" + s[1], ayudas + dificultas) ) + '>'
+
+	return str_res
+
 def cleanup(text):
 	""" 
 		Borrarle todos los espacios entre los separadores de la gramatica
 	"""
 	text = re.sub(r"#(.*)\n","",text) #Borrarle los comentarios
-
+	text = re.sub(r"^\s*$","",text) #Borrar lineas vacias
+	
 	#Borrar los espacios entre los separadores, para poder parsear mas facil
-	separators = "".join(map(lambda x : re.escape(x), ['(',')','[',']','{','}','<','>',':']))
+	global separtor_tags
+	separators = "".join(map(lambda x : re.escape(x), separator_tags))
 	#El \S{,2} es un hack choto para que borre los costados izquierdos de las aserciones, en teoria anda
 	#pero sospechar mucho MUCHO de el :D
 	regex = re.compile("\s*(\S{,2}[" + separators + "])\s*")
@@ -137,9 +163,15 @@ def cleanup(text):
 def main():
 	parser = argparse.ArgumentParser(description='Parsea la gramatica de arboles que definimos a JSON.')
 
-	parser.add_argument('-i', dest='input_file', default='-', help=' Archivo con la entrada. Si no se especifica se toma entrada estandar ')
-	parser.add_argument('-o', dest='output_file', default='--', help=' Archivo de salida. Si no se especifica se toma salida estandar ')
-
+	parser.add_argument('-i', dest='input_file', default='-', 
+		help=' Archivo con la entrada. Si no se especifica se toma entrada estandar ')
+	parser.add_argument('-o', dest='output_file', default='--', 
+		help=' Archivo de salida. Si no se especifica se toma salida estandar ')
+	parser.add_argument('-c', dest='only_cleaned',action='store_true',default=False,
+		help=" Imprimir unicamente el archivo original pero limpiado por el parser")
+	parser.add_argument('-r', dest='to_json', action='store_false', default=True,
+		help=" Pasar de JSON a gramatica, no al reves. Invalida -c "
+	)
 	args = parser.parse_args()
 
 	try:
@@ -152,10 +184,20 @@ def main():
 	except IOError as error:
 		print "Error %s: %s" % error
 
-	cleaned = cleanup ( input_file.read() )
-	data,rem = parse( cleanup( cleaned ) )
+	if args.to_json:
+		cleaned = cleanup ( input_file.read() )
 
-	output_file.write(json.dumps(data, sort_keys=True, indent=4))
+		if args.only_cleaned:
+			print cleaned
+		else:
+			try:
+				data,rem = parse_to_json( cleanup( cleaned ) )
+			except FormatException as error:
+				print error
+				exit()
+		output_file.write(json.dumps(data, sort_keys=True, indent=4))
+	else:
+		output_file.write( unicode(parse_to_jg( json.loads( input_file.read() ) ) ).encode('utf-8') )
 
 if __name__ == "__main__":
 	main()

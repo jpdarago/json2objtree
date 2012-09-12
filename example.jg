@@ -8,6 +8,7 @@ od(Lograr un sistema de delivery de comida) {
 			od(Comprarle un horno nuclear) < +:Hecatombe nuclear, -:Seguridad, -: Costo >,
 			od(Comprarle un horno para pizza)< +:Seguridad, +:Costo, -:Hecatombe Nuclear >
 		],
+		ad(Cocinero y cocina piolas implica piola),
 		od(Contratar un cocinero piola) #Esto es otro comentario que no deberia dar pelota
 	},
 	#Esto es un comentario en el medio
