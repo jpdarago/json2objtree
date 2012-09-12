@@ -24,10 +24,15 @@ import os.path
 import re
 import time
 import argparse
+import textwrap
 
 #Arma las propiedades para hacer el digrafo
-def make_properties(shape,style="filled",fillcolor="yellow"):
-	return dict(zip(["shape","style","fillcolor"],[shape,style,fillcolor]))
+def make_properties(shape,style="filled",fillcolor="yellow",extra={}):
+	defaults = dict(zip(["shape","style","fillcolor"],[shape,style,fillcolor]))
+	
+	defaults.update(extra)
+	defaults.update({'width': '2.0'})
+	return defaults
 
 #Contador de la cantidad de nodos
 node_count = 0
@@ -41,7 +46,7 @@ def make_node(assertion_type, text):
 	"""
 	global node_count
 	props = {
-		'od': make_properties("parallelogram"),
+		'od': make_properties("polygon",extra={'skew': '0.2'}),
 		'ob': make_properties("circle",style="filled",fillcolor="#aacccc"),
 		'ad': make_properties("trapezium"),
 		'ag': make_properties("hexagon"),
@@ -52,8 +57,10 @@ def make_node(assertion_type, text):
 			'width': '0.1'
 		}
 	}.get(assertion_type,dict(make_properties("plaintext")))
-	props['label'] = text
 
+	w = textwrap.TextWrapper(width=60,break_long_words=False,replace_whitespace=False)
+
+	props['label'] = '\n'.join( w.wrap( text ) )
 	node_count += 1
 	return pydot.Node(str(node_count), ** props )
 
@@ -82,7 +89,7 @@ class ObjectiveGraph(object):
 
 	def get_node(self,assertion):
 		for node in self.__node_list:
-			if(assertion == node[0]):
+			if assertion == node[0]:
 				return node[1]
 		return None
 
@@ -97,7 +104,7 @@ class ObjectiveGraph(object):
 	def add_edge(self,child_node,parent_node,properties={}):
 		self.__graph.add_edge(pydot.Edge(child_node,parent_node, **properties))
 
-	def add_relation(self,child,parent,properties={}):
+	def add_relation(self,child,parent,properties={} ):
 		#Agregar ambas aserciones si no estan ya
 		child_node = self.add_node(child)
 		parent_node = self.add_node(parent)
@@ -123,8 +130,10 @@ def build_tree(data,tree):
 		del diccionario de datos dict, que tiene forma de json (ver example.json).
 	"""
 	global dummy_count
+	
+	node_text = data['texto'].strip().capitalize()
+	root = Assertion( data['tipo'], node_text )
 
-	root = Assertion(data['tipo'],data['texto'].strip().capitalize())
 	if 'y-ref' in data.keys():
 		#El nodo dummy es el circulo negro que se usa para los y-refinamientos
 		dummy = Assertion('dummy',"DUMMY" + str(dummy_count))
@@ -136,9 +145,10 @@ def build_tree(data,tree):
 			t = o['tipo']
 			if len(data['y-ref']) == 1 or o['tipo'] == 'ag':
 				add_dummy_edge = False
-				tree.add_relation(root,child, {'arrowhead': 'none', 'arrowtail': 'none', 'dir': 'both'})
+				tree.add_relation(root,child, 
+					{'arrowhead': 'none', 'arrowtail': 'none', 'dir': 'both'})
 			else:
-				tree.add_relation(dummy,child, {'arrowtail': 'none', 'dir': 'back'})
+				tree.add_relation(dummy,child, {'arrowtail': 'none', 'dir': 'back'} )
 
 			build_tree(o,tree)
 
@@ -147,7 +157,7 @@ def build_tree(data,tree):
 
 	elif 'o-ref' in data.keys():
 		for o in data['o-ref']:
-			child = Assertion(o['tipo'],o['texto'])
+			child = Assertion(o['tipo'],o['texto'].strip().capitalize())
 			tree.add_relation(root,child, {'dir': 'back'})
 
 			build_tree(o,tree)

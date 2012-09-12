@@ -195,7 +195,7 @@ def main():
 			except FormatException as error:
 				print error
 				exit()
-		output_file.write(json.dumps(data, sort_keys=True, indent=4))
+		output_file.write( unicode( json.dumps(data, sort_keys=True, indent=4) ).encode('utf-8') )
 	else:
 		output_file.write( unicode(parse_to_jg( json.loads( input_file.read() ) ) ).encode('utf-8') )
 
