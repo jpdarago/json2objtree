@@ -169,18 +169,22 @@ def main():
 	#Lee los argumentos de entrada estandar
 	parser = argparse.ArgumentParser(description='Dibuja un arbol de objetivos onda Ingenieria I de FCEN UBA a partir de JSON.')
 
-	parser.add_argument('input_file', help=' Archivo con la entrada, - es para entrada estandar ')
-	parser.add_argument('-o', dest='output_file', default='--', help=' Archivo de salida. Por default usa SVG y el mismo nombre que la entrada ')
+	parser.add_argument('-i',dest='input_file', default='--', 
+		help=' Archivo con la entrada. Si se ignora es entrada estandar ')
+	parser.add_argument('-o', dest='output_file', default='--', 
+		help=" Archivo de salida. "
+		+ "Por default usa SVG y el mismo nombre que la entrada,"
+		+ " o draw.svg si se leyo de stdin" )
 
 	args = parser.parse_args()
 
 	if args.output_file == '--':
 		#Por defecto produce un svg
-		name = 'a.svg' if args.input_file == '-' else args.input_file
+		name = 'draw.svg' if args.input_file == '-' else args.input_file
 		args.output_file = os.path.splitext(name)[0] + '.svg'
 
 	try:
-		input_file = sys.stdin if args.input_file == '-' else open(args.input_file,'r')
+		input_file = sys.stdin if args.input_file == '--' else open(args.input_file,'r')
 	except IOError as error:
 		print "Error %s: %s" % error
 
