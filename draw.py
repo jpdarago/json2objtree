@@ -39,11 +39,11 @@ node_count = 0
 #Devuelve la longitud del texto para graficar
 def text_width(lines):
 	max_len = max( map( len, lines ) )
-	return max_len / 12.0
+	return max_len / 8.5
 
 #Devuelve la altura del texto para graficar
 def text_height(lines):
-	return len(lines) / 1.8
+	return len(lines) / 1.5
 
 #Arma una asercion dado un texto 
 def make_node(assertion_type, text):
@@ -100,7 +100,6 @@ class Assertion:
 class ObjectiveGraph(object):
 	def __init__(self):
 		self.__graph = pydot.Dot('objetivos', graph_type='digraph')
-		self.__graph.set_aspect('3')
 
 		self.__nodes = []
 		self.__assertions = []

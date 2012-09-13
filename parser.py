@@ -35,8 +35,8 @@ def parse_enclosed(text):
 	global separator_tags
 	if text[0] in ['"',"'"]:
 		#El texto esta quoteado
-		for i in range(2,len(text)):
-			if text[i] == text[1]:
+		for i in range(1,len(text)):
+			if text[i] == text[0]:
 				if i+1 >= len(text):
 					raise FormatException(
 						'Terminacion prematura del texto en "%s"' % text[i:])
