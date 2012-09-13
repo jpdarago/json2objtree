@@ -31,56 +31,64 @@ class FormatException(Exception):
 
 separator_tags = ['(',')','[',']','{','}','<','>',':','+','-']
 
+def parse_enclosed(text):
+	global separator_tags
+	if text[0] in ['"',"'"]:
+		#El texto esta quoteado
+		for i in range(2,len(text)):
+			if text[i] == text[1]:
+				if i+1 >= len(text):
+					raise FormatException(
+						'Terminacion prematura del texto en "%s"' % text[i:])
+				elif text[i+1] != ')':
+					raise FormatException(
+						'Se esperaba ), se obtuvo %s en "%s"' % (text[i+1], text[i:]))
+
+				return text[1:i], text[i+2:]
+
+		raise FormatException(
+			'No se encontro %s, posible etiqueta no cerrada en "%s"' % (text[2],text[2:]) )
+	else:
+		#El texto no esta quoteado
+		for i in range(0,len(text)):
+			if text[i] == ')':
+				return text[:i], text[i+1:]
+			elif text[i] in separator_tags:
+				raise FormatException(
+					'"(" no quoteado contiene caracter %s en "%s" ' % (text[i], text))
+
+		raise FormatException(
+			'No se encontro ). posible etiqueta no cerrada en "%s" ' % text[2:] )
+
 def parse_to_json(text):
 	""" 
-		Parsea la gramatica	a un JSON. Para un ejemplo vease example.jg
+		Parsea la gramatica	a un JSON. Para un ejemplo de la gramatica vease example.jg
 	"""
 	res = {}
-
+	
 	if(len(text) < 2):
-		raise FormatException('Terminacion prematura del texto en "%s"' % text)
+		raise FormatException(
+			'Terminacion prematura del texto en "%s"' % text)
 
 	assertion_type = text[0:2]
 	res['tipo'] = assertion_type
 
 	if(text[2] != '('):
-		raise FormatException('Se esperaba ( se obtuvo %s en "%s"' % (text[2], text))
+		raise FormatException(
+			'Se esperaba ( se obtuvo %s en "%s"' % (text[2], text))
 
-	label_end = 0
-	if text[3] in ['"',"'"]:
-		#El texto esta quoteado
-		for i in range(4,len(text)):
-			if text[i] == text[3]:
-				res['texto'] = text[4:i] 
-				if i+1 >= len(text):
-					raise FormatException('Terminacion prematura del texto en "%s"' % text[i:])
-				elif text[i+1] != ')':
-					raise FormatException('Se esperaba ) se obtuvo %s en "%s"' % (text[i+1], text[i:]))
-
-				label_end = i+2
-				break
-
-		if label_end == -1:
-			raise FormatException('No se encontro %s, posible label de objetivo no cerrada en "%s"' % (text[2],text[2:]) )
-	else:
-		#El texto no esta quoteado
-		for i in range(3,len(text)):
-			if text[i] == ')':
-				res['texto'] = text[3:i] 
-				label_end = i+1
-				break
-			elif text[i] in separator_tags:
-				raise FormatException(' "(" no quoteado contiene caracter tag %s en "%s" ' % (text[i], text))
-
-		if label_end == -1:
-			raise FormatException('No se encontro ). posible label de objetivo no cerrada en "%s" ' % text[2:] )
-
-	text = text[label_end:]
+	res['texto'], text = parse_enclosed(text[3:])
 
 	if(len(text) == 0):
 		return res, ""
 
+	if(text[0] == '('):
+		#Tenemos una etiqueta de reconocimiento de tag
+		res['tag'], text = parse_enclosed(text[1:])
+
 	if(text[0] in ["{","["]):
+		#Tenemos un y-refinamiento o un o-refinamiento
+
 		open_tag = text[0]
 		close_tag = '}' if text[0] == '{' else ']'
 		dict_key = 'y-ref' if text[0] == '{' else 'o-ref'
@@ -96,13 +104,15 @@ def parse_to_json(text):
 			if(text[0] != ','): 
 				break
 		if(text[0] != close_tag):
-			raise FormatException('Se esperaba %s como cierre del refinamiento en "%s" >' % (close_tag,text) )
+			raise FormatException(
+				'Se esperaba %s como cierre del refinamiento en "%s" >' % (close_tag,text) )
 		text = text[1:]
 
 	if(len(text) == 0):
 		return res, ""
 
 	if text[0] == '<':
+		#Tenemos lista de impacto en objetivos blandos y duros
 		res['ayuda'] =  []
 		res['dificulta'] = []
 		
@@ -114,11 +124,13 @@ def parse_to_json(text):
 				break
 
 		if s == "__INVALID__":
-			raise FormatException("Lista de efectos en objetivo blando incompleta en < %s >" % text)
+			raise FormatException(
+				"Lista de efectos en objetivo blando incompleta en < %s >" % text)
 
 		for elem in s.split(","):
 			if not ':' in elem:
-				raise FormatException("Lista de objetivos blandos afectados en < %s >" % text)
+				raise FormatException(
+					"Lista de objetivos blandos afectados en < %s >" % text)
 
 			impc,obj = elem.split(':')
 			if(impc[0] == '+'):
@@ -136,12 +148,19 @@ def parse_to_jg(tree, indentation=""):
 
 	if 'y-ref' in tree.keys() or 'o-reg' in tree.keys():
 		sep_start,sep_end = ('{','}') if 'y-ref' in tree.keys() else ('[', ']')
-		str_res += sep_start + "\n" + ",\n".join( map ( lambda t: parse_to_jg(t, indentation + "\t"), tree.get('y-ref',None) or tree.get('o-ref',[]) ) ) + "\n" + indentation + sep_end
-	
+		
+		refinements = tree.get('y-ref',None) or tree.get('o-ref',[])
+		parse_subtree = lambda t: parse_to_jg(t,indentation+'\t')
+		subtrees_text = ",\n".join(map(parse_subtree, refinements))
+
+		str_res += sep_start + "\n" + subtrees_text + "\n" + indentation + sep_end
+
 	ayudas = [('+',s) for s in tree.get('ayuda',[])]
 	dificultas = [('-',s) for s in tree.get('dificulta',[])]
+
 	if( len(ayudas) + len(dificultas) > 0):
-		str_res += '<' + ",".join( map( lambda s: s[0] + ":" + s[1], ayudas + dificultas) ) + '>'
+		impact_text = ",".join(map(lambda s: "%s:%s" % s),ayudas+dificultas)
+		str_res += '<' + impact_text + '>'
 
 	return str_res
 
@@ -176,13 +195,15 @@ def main():
 
 	try:
 		input_file = sys.stdin if args.input_file == '-' else open(args.input_file,'r')
-	except IOError as error:
-		print "Error %s: %s" % error
+	except IOError, error:
+		print "Error %s: %s" % (error.errno, os.strerror(error.errno))
+		exit()
 
 	try:
 		output_file = sys.stdout if args.output_file == '--' else open(args.output_file,'w')
-	except IOError as error:
-		print "Error %s: %s" % error
+	except IOError, error:
+		print "Error %s: %s" % (error.errno, os.strerror(error.errno))
+		exit()
 
 	if args.to_json:
 		cleaned = cleanup ( input_file.read() )

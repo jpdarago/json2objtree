@@ -36,17 +36,41 @@ def make_properties(shape,style="filled",fillcolor="yellow",extra={}):
 #Contador de la cantidad de nodos
 node_count = 0
 
+#Devuelve la longitud del texto para graficar
+def text_width(lines):
+	max_len = max( map( len, lines ) )
+	return max_len / 12.0
+
+#Devuelve la altura del texto para graficar
+def text_height(lines):
+	return len(lines) / 1.8
+
 #Arma una asercion dado un texto 
 def make_node(assertion_type, text):
 	"""
 		Arma un nodo dado el tipo de asercion y el texto
 	"""
 	global node_count
+
+	w = textwrap.TextWrapper(
+		width=50,break_long_words=False,replace_whitespace=False)
+
+	text = w.wrap(text)
+	text_props = {
+		'fixedsize': True,
+		'label': '\n'.join(text),
+		'height': text_height(text),
+		'width': text_width(text) + 1.5
+	}
+
+	if assertion_type == 'od':
+		text_props['skew'] = '0.05'
+
 	props = {
-		'od': make_properties("polygon",extra={'skew': '0.2'}),
-		'ob': make_properties("circle",style="filled",fillcolor="#aacccc"),
-		'ad': make_properties("trapezium"),
-		'ag': make_properties("hexagon"),
+		'od': make_properties("polygon",extra=text_props),
+		'ob': make_properties("circle",style="filled",fillcolor="#aacccc",extra=text_props),
+		'ad': make_properties("trapezium",extra=text_props),
+		'ag': make_properties("hexagon",extra=text_props),
 		'dummy': {
 			'shape': 'point',
 			'filled': 'filled',
@@ -54,21 +78,21 @@ def make_node(assertion_type, text):
 			'width': '0.1'
 		}
 	}.get(assertion_type,dict(make_properties("plaintext")))
-
-	w = textwrap.TextWrapper(width=50,break_long_words=False,replace_whitespace=False)
-
-	props['label'] = '\n'.join( w.wrap( text ) )
+	
 	node_count += 1
 	return pydot.Node(str(node_count), ** props )
 
 class Assertion:
-	def __init__(self,type, text):
+	def __init__(self,type, text, tag=None):
 		self.assertion_type = type
-		self.text = text.strip().capitalize()
-	
+		self.text = text.strip()
+		self.tag = None
 	def __eq__(self,other):
 		if isinstance(other,Assertion): 
-			return self.assertion_type == other.assertion_type and self.text == other.text
+			same_type = self.assertion_type == other.assertion_type
+			same_text = self.text == other.text 
+
+			return same_type and same_text
 		else:
 			return False
 
@@ -76,29 +100,46 @@ class Assertion:
 class ObjectiveGraph(object):
 	def __init__(self):
 		self.__graph = pydot.Dot('objetivos', graph_type='digraph')
+		self.__graph.set_aspect('3')
+
 		self.__nodes = []
+		self.__assertions = []
 
 	def add_node(self,assertion):
-		node = make_node(assertion.assertion_type, assertion.text)
+		if assertion.assertion_type != 'tg':
+			node = make_node(assertion.assertion_type, assertion.text)
 
-		self.__graph.add_node(node)
-		self.__nodes.append(node)
+			self.__assertions.append(assertion)
+			self.__graph.add_node(node)
+			self.__nodes.append(node)
 
-		return len(self.__nodes) - 1
+			return len(self.__nodes) - 1
+		else:
+			for i,a in enumerate(self.__assertions):
+				if a.tag == assertion.text:
+					return i
+			return -1
 
 	def add_relation(self,child_index,parent_index,properties={} ):
 		if child_index < 0 or child_index >= len(self.__nodes):
 			raise Exception('Hijo invalido: %s' % child_index)
 
 		if parent_index < 0 or parent_index >= len(self.__nodes):
-			raise Exception('Padre invalido: %s' % root_index)
+			raise Exception('Padre invalido: %s' % parent_index)
 
 		#Agregar el eje
-		self.__graph.add_edge(pydot.Edge(self.__nodes[child_index],self.__nodes[parent_index], **properties))
+		self.__graph.add_edge(
+			pydot.Edge(
+				self.__nodes[child_index],
+				self.__nodes[parent_index], 
+				**properties))
 
 	def write(self,output_file):
 		output_name, output_extension = os.path.splitext(output_file)
 		self.__graph.write(output_file, None, output_extension[1:])
+
+def build_assertion(data):
+	return Assertion( data['tipo'], data['texto'], data.get('tag',None))
 
 def add_impact(tree, root_index, soft_objs, edge_style):
 	"""
@@ -113,7 +154,7 @@ def build_tree(data):
 	node_count = 0
 
 	tree = ObjectiveGraph()
-	root = Assertion( data['tipo'], data['texto'] )
+	root = build_assertion( data )
 
 	build_branches(data,tree,tree.add_node(root))
 	return tree
@@ -130,7 +171,7 @@ def build_branches(data,tree,root_index):
 		dummy_index = -1
 		
 		for o in data['y-ref']: 
-			child_index = tree.add_node(Assertion(o['tipo'],o['texto']))
+			child_index = tree.add_node(build_assertion(o))
 
 			if len(data['y-ref']) == 1 or o['tipo'] == 'ag':
 				tree.add_relation(root_index,child_index, 
@@ -150,7 +191,7 @@ def build_branches(data,tree,root_index):
 
 	elif 'o-ref' in data.keys():
 		for o in data['o-ref']:
-			child_index = tree.add_node(Assertion(o['tipo'],o['texto']))
+			child_index = tree.add_node(build_assertion(o))
 			tree.add_relation(root_index,child_index, {'dir': 'back'})
 
 			build_branches(o,tree,child_index)
@@ -167,7 +208,8 @@ def build_branches(data,tree,root_index):
 
 def main():
 	#Lee los argumentos de entrada estandar
-	parser = argparse.ArgumentParser(description='Dibuja un arbol de objetivos onda Ingenieria I de FCEN UBA a partir de JSON.')
+	parser = argparse.ArgumentParser(
+		description='Dibuja un arbol de objetivos onda Ingenieria I de FCEN UBA a partir de JSON.')
 
 	parser.add_argument('-i',dest='input_file', default='--', 
 		help=' Archivo con la entrada. Si se ignora es entrada estandar ')
