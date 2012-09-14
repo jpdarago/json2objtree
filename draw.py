@@ -39,11 +39,11 @@ node_count = 0
 #Devuelve la longitud del texto para graficar
 def text_width(lines):
 	max_len = max( map( len, lines ) )
-	return max_len / 8.5
+	return max_len / 9.5
 
 #Devuelve la altura del texto para graficar
 def text_height(lines):
-	return len(lines) / 1.5
+	return len(lines) / 2.0
 
 #Arma una asercion dado un texto 
 def make_node(assertion_type, text):
@@ -60,14 +60,14 @@ def make_node(assertion_type, text):
 		'fixedsize': True,
 		'label': '\n'.join(text),
 		'height': text_height(text),
-		'width': text_width(text) + 1.5
+		'width': text_width(text)
 	}
 
 	if assertion_type == 'od':
 		text_props['skew'] = '0.05'
 
 	props = {
-		'od': make_properties("polygon",extra=text_props),
+		'od': make_properties("rectangle",extra=text_props),
 		'ob': make_properties("circle",style="filled",fillcolor="#aacccc",extra=text_props),
 		'ad': make_properties("trapezium",extra=text_props),
 		'ag': make_properties("hexagon",extra=text_props),
@@ -100,7 +100,7 @@ class Assertion:
 class ObjectiveGraph(object):
 	def __init__(self):
 		self.__graph = pydot.Dot('objetivos', graph_type='digraph')
-
+		self.__graph.set_aspect('3')
 		self.__nodes = []
 		self.__assertions = []
 
