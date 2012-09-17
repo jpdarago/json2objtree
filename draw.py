@@ -37,13 +37,13 @@ def make_properties(shape,style="filled",fillcolor="yellow",extra={}):
 node_count = 0
 
 #Devuelve la longitud del texto para graficar
-def text_width(lines):
+def text_width(lines,factor):
 	max_len = max( map( len, lines ) )
-	return max_len / 9.5
+	return max_len / factor #6.5
 
 #Devuelve la altura del texto para graficar
-def text_height(lines):
-	return len(lines) / 2.0
+def text_height(lines, factor):
+	return len(lines) / factor #1.4
 
 #Arma una asercion dado un texto 
 def make_node(assertion_type, text):
@@ -55,19 +55,28 @@ def make_node(assertion_type, text):
 	w = textwrap.TextWrapper(
 		width=50,break_long_words=False,replace_whitespace=False)
 
-	text = w.wrap(text)
-	text_props = {
-		'fixedsize': True,
-		'label': '\n'.join(text),
-		'height': text_height(text),
-		'width': text_width(text)
+	factors = {
+		'od': (7.0,1.7),
+		'ob': (8.1,1.7),
+		'ad': (7.2,1.6),
+		'ag': (4.1,1.2)
 	}
+
+	text_props = {}
+	if assertion_type != 'dummy':
+		text = w.wrap(text)
+		text_props = {
+			'fixedsize': True,
+			'label': '\n'.join(text),
+			'width': text_width(text,factors[assertion_type][0]),
+			'height': text_height(text,factors[assertion_type][1]),
+		}
 
 	if assertion_type == 'od':
 		text_props['skew'] = '0.05'
 
 	props = {
-		'od': make_properties("rectangle",extra=text_props),
+		'od': make_properties("parallelogram",extra=text_props),
 		'ob': make_properties("circle",style="filled",fillcolor="#aacccc",extra=text_props),
 		'ad': make_properties("trapezium",extra=text_props),
 		'ag': make_properties("hexagon",extra=text_props),
@@ -104,13 +113,15 @@ class ObjectiveGraph(object):
 		self.__nodes = []
 		self.__assertions = []
 
-	def add_node(self,assertion):
+	def add_node(self,assertion,add_to_tree=True):
 		if assertion.assertion_type != 'tg':
 			node = make_node(assertion.assertion_type, assertion.text)
 
 			self.__assertions.append(assertion)
-			self.__graph.add_node(node)
 			self.__nodes.append(node)
+
+			if add_to_tree:
+				self.__graph.add_node(node)
 
 			return len(self.__nodes) - 1
 		else:
@@ -119,7 +130,10 @@ class ObjectiveGraph(object):
 					return i
 			return -1
 
-	def add_relation(self,child_index,parent_index,properties={} ):
+	def add_relation(self,child_index,parent_index,properties={},found_branch=True):
+		if not found_branch:
+			return
+
 		if child_index < 0 or child_index >= len(self.__nodes):
 			raise Exception('Hijo invalido: %s' % child_index)
 
@@ -140,25 +154,29 @@ class ObjectiveGraph(object):
 def build_assertion(data):
 	return Assertion( data['tipo'], data['texto'], data.get('tag',None))
 
-def add_impact(tree, root_index, soft_objs, edge_style):
+def add_impact(tree, root_index, soft_objs, edge_style,should_add):
 	"""
 		Agrega una arista de impacto sobre objetivo blando entre el nodo root
 		y los objetivos en soft_objs, con el estilo indicado
 	"""
 	for o in soft_objs:
-		soft_obj_index = tree.add_node( Assertion('ob',o) )
-		tree.add_relation(root_index,soft_obj_index, edge_style)
+		soft_obj_index = tree.add_node( Assertion('ob',o), should_add )
+		tree.add_relation(root_index,soft_obj_index, edge_style, should_add )
 
-def build_tree(data):
+def build_tree(data, branch):
 	node_count = 0
 
 	tree = ObjectiveGraph()
 	root = build_assertion( data )
 
-	build_branches(data,tree,tree.add_node(root))
+	add_all = branch == '__all'
+	is_branch = data.get('tag','__none') == branch 
+	found_branch = add_all or is_branch
+
+	build_branches(data,tree,tree.add_node(root,found_branch),branch,found_branch)
 	return tree
 
-def build_branches(data,tree,root_index):
+def build_branches(data,tree,root_index,branch,found_branch):
 	"""
 		Construye el arbol de objetivos (pasado por parametro como tree), a partir
 		del diccionario de datos dict, que tiene forma de json (ver example.json).
@@ -170,40 +188,46 @@ def build_branches(data,tree,root_index):
 		dummy_index = -1
 		
 		for o in data['y-ref']: 
-			child_index = tree.add_node(build_assertion(o))
+			is_branch = o.get('tag','__none') == branch
+			has_found_branch = found_branch or is_branch
+
+			child_index = tree.add_node(build_assertion(o),has_found_branch)
 
 			if len(data['y-ref']) == 1 or o['tipo'] == 'ag':
 				tree.add_relation(root_index,child_index, 
-					{'arrowhead': 'none', 'arrowtail': 'none', 'dir': 'both'})
+					{'arrowhead': 'none', 'arrowtail': 'none', 'dir': 'both'},has_found_branch)
 			else:
 				if dummy_index == -1:
 					dummy = Assertion('dummy',"DUMMY")
-					dummy_index = tree.add_node(dummy)
+					dummy_index = tree.add_node(dummy,found_branch)
 
 				tree.add_relation(dummy_index,child_index, 
-					{'arrowtail': 'none', 'dir': 'back'} )
+					{'arrowtail': 'none', 'dir': 'back'}, found_branch )
 
-			build_branches(o,tree,child_index)
+			build_branches(o,tree,child_index, branch, has_found_branch)
 
 		if dummy_index != -1:
-			tree.add_relation(root_index,dummy_index, {'dir': 'back'})
+			tree.add_relation(root_index,dummy_index, {'dir': 'back'}, has_found_branch)
 
 	elif 'o-ref' in data.keys():
 		for o in data['o-ref']:
-			child_index = tree.add_node(build_assertion(o))
-			tree.add_relation(root_index,child_index, {'dir': 'back'})
+			is_branch = o.get('tag','__none') == branch
+			has_found_branch = found_branch or is_branch
 
-			build_branches(o,tree,child_index)
+			child_index = tree.add_node(build_assertion(o),has_found_branch)
+			tree.add_relation(root_index,child_index, {'dir': 'back'},has_found_branch)
+
+			build_branches(o,tree,child_index,branch,has_found_branch)
 
 	#Agregar los objetivos blandos que beneficia
 	helps = data.get('ayuda',[])
 	edge_style = {'label': '++', 'style': 'dotted', 'penwidth': 2}
-	add_impact(tree,root_index,helps,edge_style)
+	add_impact(tree,root_index,helps,edge_style,found_branch)
 
 	#Agregar los objetivos blandos que dificulta
 	hardens = data.get('dificulta',[])
 	edge_style['label'] = '--'
-	add_impact(tree,root_index,hardens,edge_style)
+	add_impact(tree,root_index,hardens,edge_style,found_branch)
 
 def main():
 	#Lee los argumentos de entrada estandar
@@ -216,6 +240,8 @@ def main():
 		help=" Archivo de salida. "
 		+ "Por default usa SVG y el mismo nombre que la entrada,"
 		+ " o draw.svg si se leyo de stdin" )
+	parser.add_argument('-r',dest='branch', default='__all', 
+		help=' Tag de la rama que queremos graficar esta vez.')
 
 	args = parser.parse_args()
 
@@ -231,7 +257,7 @@ def main():
 
 	data = json.loads( input_file.read() )
 	
-	build_tree(data).write(args.output_file)
+	build_tree(data,args.branch).write(args.output_file)
 
 if __name__ == '__main__':
 	main()
