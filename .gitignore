@@ -31,3 +31,5 @@ pip-log.txt
 *.jpeg
 *.gif
 *.dot
+*.jg
+*.json

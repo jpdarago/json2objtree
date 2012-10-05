@@ -146,7 +146,7 @@ def parse_to_jg(tree, indentation=""):
 	"""
 	str_res = indentation + tree['tipo'] + "('" + tree['texto'] + "')"
 
-	if 'y-ref' in tree.keys() or 'o-reg' in tree.keys():
+	if 'y-ref' in tree.keys() or 'o-ref' in tree.keys():
 		sep_start,sep_end = ('{','}') if 'y-ref' in tree.keys() else ('[', ']')
 		
 		refinements = tree.get('y-ref',None) or tree.get('o-ref',[])
