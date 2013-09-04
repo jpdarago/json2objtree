@@ -10,6 +10,10 @@ if [ $1 ]; then
 	dir=$(dirname $1)
 
 	echo "Los branches son $branches"
+	if [ -z "$branches"]; then
+		echo "No hay branches que procesar, al menos se debe tener un branch principal"
+		exit 1
+	fi
 
 	for branch in "${branches[@]}"
 	do

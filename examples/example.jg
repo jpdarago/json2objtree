@@ -1,5 +1,5 @@
 #Esto es un comentario, deberia ser ignorado
-od(Lograr un sistema de delivery de comida) (main_branch){
+od(Lograr un sistema de delivery de comida){
 	od(Lograr que se registre el pedido del cliente){
 		ag(Pibe de la caja registradora)
 	},
