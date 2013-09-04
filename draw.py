@@ -121,7 +121,7 @@ class ObjectiveGraph(object,):
 	def __init__(self,name="diagrama_objetivos"):
 		self.__graph = pydot.Dot(name, graph_type='digraph')
 
-		self.__graph.set_shape_files(os.getcwd() + '/draw/cloud.png')
+		self.__graph.set_shape_files(os.getcwd() + '/assets/cloud.png')
 		self.__graph.set_mclimit(3.0)
 
 		self.__nodes = []

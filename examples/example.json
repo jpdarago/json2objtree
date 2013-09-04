@@ -1,59 +1,91 @@
 {
-	"tipo": "od",
-	"texto": "Lograr un sistema de delivery de comida",
-	"y-ref": [
-		{
-			"tipo": "od",
-			"texto": "Lograr que se registre el pedido del cliente"
-		},
-		{
-			"tipo": "od",
-			"texto": "Lograr que dado el pedido, el cocinero lo prepare",
-			"y-ref": [
-					{
-						"tipo": "od",
-						"texto": "Contratar un cocinero piola"
-					},
-					{
-						"tipo": "od",
-						"texto": "Comprarle una cocina piola",
-						"o-ref": 
-							[
-								{
-									"tipo": "od",
-									"texto": "Comprarle un horno nuclear",
-									"ayuda": ["Hecatombe nuclear"],
-									"dificulta": ["Precio", "Seguridad"]
-								},
-								{
-									"tipo": "od",
-									"texto": "Comprarle un horno para pizza",
-									"ayuda": ["Seguridad", "costo"],
-									"dificulta": ["Hecatombe nuclear"]
-								}
-							]
-					}
-			]
-		},
-		{
-			"tipo": "od",
-			"texto": "Lograr que preparado el pedido, se lo lleve a la direccion del cliente",
-			"o-ref": [
-				{
-					"tipo": "od",
-					"texto": "Llevarlo en moto",
-					
-					"ayuda": ["Velocidad"],
-					"dificulta": ["Seguridad"]
-				},
-				{
-					"tipo": "od",
-					"texto": "Llevarlo en tanque",
-					
-					"ayuda": ["Velocidad", "costo"],
-					"dificulta": ["Seguridad"]
-				}
-			]
-		}
-	]
+    "tag": "main_branch", 
+    "texto": "Lograr un sistema de delivery de comida", 
+    "tipo": "od", 
+    "y-ref": [
+        {
+            "texto": "Lograr que se registre el pedido del cliente", 
+            "tipo": "od", 
+            "y-ref": [
+                {
+                    "texto": "Pibe de la caja registradora", 
+                    "tipo": "ag"
+                }
+            ]
+        }, 
+        {
+            "texto": "Lograr que dado el pedido, el cocinero lo prepare", 
+            "tipo": "od", 
+            "y-ref": [
+                {
+                    "o-ref": [
+                        {
+                            "ayuda": [
+                                "Hecatombe nuclear"
+                            ], 
+                            "dificulta": [
+                                "Seguridad", 
+                                "Costo"
+                            ], 
+                            "texto": "Comprarle un horno nuclear", 
+                            "tipo": "od"
+                        }, 
+                        {
+                            "ayuda": [
+                                "Seguridad", 
+                                "Costo"
+                            ], 
+                            "dificulta": [
+                                "Hecatombe Nuclear"
+                            ], 
+                            "texto": "Comprarle un horno para pizza", 
+                            "tipo": "od"
+                        }
+                    ], 
+                    "texto": "Comprarle una cocina piola", 
+                    "tipo": "od"
+                }, 
+                {
+                    "texto": "Cocinero y cocina piolas implica piola", 
+                    "tipo": "ad"
+                }, 
+                {
+                    "texto": "Contratar un cocinero piola", 
+                    "tipo": "od"
+                }
+            ]
+        }, 
+        {
+            "o-ref": [
+                {
+                    "ayuda": [
+                        "Velocidad"
+                    ], 
+                    "dificulta": [
+                        "Destruccion vehicular"
+                    ], 
+                    "texto": "Llevarlo en moto", 
+                    "tipo": "od"
+                }, 
+                {
+                    "ayuda": [
+                        "Destruccion vehicular"
+                    ], 
+                    "dificulta": [
+                        "Velocidad"
+                    ], 
+                    "texto": "Llevarlo en tanque", 
+                    "tipo": "od", 
+                    "y-ref": [
+                        {
+                            "texto": "Una pizzeria puede comprar un manso tanque", 
+                            "tipo": "ad"
+                        }
+                    ]
+                }
+            ], 
+            "texto": "Lograr que preparado el pedido, se lo lleve a la direccion del cliente", 
+            "tipo": "od"
+        }
+    ]
 }
