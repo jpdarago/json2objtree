@@ -1,4 +1,5 @@
 {
+    "tag": "main_branch", 
     "texto": "Lograr un sistema de delivery de comida", 
     "tipo": "od", 
     "y-ref": [
@@ -13,6 +14,7 @@
             ]
         }, 
         {
+            "tag": "cocinero", 
             "texto": "Lograr que dado el pedido, el cocinero lo prepare", 
             "tipo": "od", 
             "y-ref": [

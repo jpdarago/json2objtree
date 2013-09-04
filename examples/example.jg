@@ -1,9 +1,9 @@
 #Esto es un comentario, deberia ser ignorado
-od(Lograr un sistema de delivery de comida){
+od(Lograr un sistema de delivery de comida) (main_branch) {
 	od(Lograr que se registre el pedido del cliente){
 		ag(Pibe de la caja registradora)
 	},
-	od(Lograr que dado el pedido, el cocinero lo prepare){
+	od(Lograr que dado el pedido, el cocinero lo prepare) (cocinero) {
 		od(Comprarle una cocina piola)[
 			od(Comprarle un horno nuclear) < +:Hecatombe nuclear, -:Seguridad, -: Costo >,
 			od(Comprarle un horno para pizza)< +:Seguridad, +:Costo, -:Hecatombe Nuclear >
